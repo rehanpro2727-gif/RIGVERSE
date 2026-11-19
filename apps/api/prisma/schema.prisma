@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["postgresql"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  passwordHash  String?
+  googleId      String?
+  displayName   String
+  avatarUrl     String?
+  role          UserRole    @default(USER)
+  preferences   Json        @default("{}")
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  builds        Build[]
+  savedBuilds   SavedBuild[]
+  sessions      Session[]
+  priceAlerts   PriceAlert[]
+
+  @@index([email])
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  userAgent    String?
+  ip           String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  name        String
+  brand       String
+  category    String       // ComponentCategory | AccessoryCategory
+  subcategory String
+  specs       Json          // ComponentSpecs — discriminated by category
+  description String?
+  imageUrl    String
+  releaseDate DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  prices      PriceRecord[]
+  compatOut   CompatibilityCheck[]
+
+  @@index([category])
+  @@index([brand])
+  @@index([slug])
+  @@index([name, brand, subcategory])
+}
+
+model Seller {
+  id            String        @id @default(uuid())
+  name          String        @unique
+  domain        String
+  logoUrl       String?
+  type          SellerType
+  region        String        @default("pan-india")
+  shipping     Json           @default("{}")   // ShippingPolicy
+  reliability   Float         @default(50)
+  lastScrapedAt DateTime?
+  createdAt     DateTime      @default(now())
+
+  prices        PriceRecord[]
+  scrapeLogs    ScrapeLog[]
+
+  @@index([domain])
+}
+
+enum SellerType {
+  DISTRIBUTOR
+  RETAILER
+  MARKETPLACE
+}
+
+model PriceRecord {
+  id          String      @id @default(uuid())
+  productId   String
+  sellerId    String
+  price       Float                       // INR
+  originalPrice Float?
+  inStock     Boolean
+  stockQty     Int?
+  scrapedAt   DateTime
+  url         String
+  currency    String      @default("INR")
+  contentHash String
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seller      Seller      @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([productId, scrapedAt])
+  @@index([sellerId, scrapedAt])
+  @@unique([productId, sellerId, contentHash])
+}
+
+model PriceSnapshot {
+  id           String        @id @default(uuid())
+  productId    String
+  bestPrice    Float
+  bestSellerId String
+  avgPrice     Float
+  priceMin     Float
+  priceMax     Float
+  freshness    String        // PriceFreshness
+  sellerCount  Int
+  lastUpdated  DateTime      @default(now())
+  product      Product       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([lastUpdated])
+}
+
+model PricePoint {
+  id        String   @id @default(uuid())
+  productId String
+  date      DateTime
+  price     Float
+  sellerId  String
+  seller    Seller   @relation(fields: [sellerId], references: [id])
+  @@index([productId, date])
+}
+
+model PriceAlert {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  targetPrice Float
+  triggered Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  @@unique([userId, productId])
+}
+
+model ScrapeLog {
+  id          String   @id @default(uuid())
+  sellerId    String
+  productId   String?
+  status      String   // success | failed | timeout
+  latencyMs   Int?
+  error       String?
+  rawPayload Json?
+  createdAt   DateTime @default(now())
+  seller      Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  @@index([sellerId, createdAt])
+}
+
+model Build {
+  id          String       @id @default(uuid())
+  userId      String?
+  title       String
+  stage       String       @default("FORGE")
+  visibility  String       @default("private")
+  shareSlug   String?      @unique
+  components  Json          // Record<ComponentCategory, BuildComponent|null>
+  accessories Json          // Accessory[]
+  totals      Json          // BuildTotals
+  compatReport Json?
+  sceneState  Json          // SceneState
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user        User?        @relation(fields: [userId], references: [id])
+  shares      BuildShare[]
+
+  @@index([userId])
+  @@index([shareSlug])
+  @@index([updatedAt])
+}
+
+model BuildShare {
+  id          String   @id @default(uuid())
+  buildId     String
+  channel     String   // link | qr | twitter | whatsapp | facebook
+  sharedAt    DateTime @default(now())
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  @@index([buildId])
+}
+
+model SavedBuild {
+  id        String   @id @default(uuid())
+  userId    String
+  buildId   String
+  title     String
+  isPublic  Boolean  @default(false)
+  shareSlug String?  @unique
+  thumbnailUrl String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  @@unique([userId, buildId])
+}
+
+model CompatibilityCheck {
+  id          String   @id @default(uuid())
+  buildId     String?
+  productId   String?
+  results     Json      // CompatibilityResult[]
+  overall     String    // PASS | WARN | FAIL
+  score       Float
+  checkedAt   DateTime  @default(now())
+  product     Product?  @relation(fields: [productId], references: [id])
+  @@index([checkedAt])
+}
+
+model RoomPreset {
+  id        String   @id @default(uuid())
+  name      String
+  theme     String   // dark | neon | rgb
+  decor     Json      // DecorItem[]
+  lighting  Json      // LightingRig
+  createdAt DateTime  @default(now())
+}

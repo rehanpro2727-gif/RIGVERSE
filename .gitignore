@@ -1,0 +1,6 @@
+.next/
+node_modules/
+.env
+*.tsbuildinfo
+.claude/*.local.json
+.claude/scheduled_tasks.*

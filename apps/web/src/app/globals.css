@@ -1,0 +1,167 @@
+/* RIGVERSE — Design system tokens & base styles */
+/* Glassmorphism + neon accents + dark theme for immersive gaming configurator */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --rigverse-bg: #0b0b14;
+    --rigverse-panel: rgba(15, 15, 30, 0.6);
+    --rigverse-glass: rgba(255, 255, 255, 0.03);
+    --rigverse-border: rgba(255, 255, 255, 0.08);
+    --rigverse-border-hover: rgba(255, 255, 255, 0.18);
+    --rigverse-text: #ffffff;
+    --rigverse-muted: #9ca3af;
+    --rigverse-neon-cyan: #00f3ff;
+    --rigverse-neon-violet: #b24bff;
+    --rigverse-neon-pink: #ff0080;
+    --rigverse-neon-amber: #ffb800;
+    --rigverse-shadow-glow: 0 0 30px rgba(0, 243, 255, 0.12);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--rigverse-bg);
+    color: var(--rigverse-text);
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply relative bg-white/[0.03] border border-white/[0.08] rounded-2xl;
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    box-shadow: var(--rigverse-shadow-glow);
+  }
+
+  .glass-panel-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .glass-panel-hover:hover {
+    border-color: var(--rigverse-border-hover);
+    box-shadow: 0 0 45px rgba(0, 243, 255, 0.18);
+  }
+
+  .neon-text-cyan {
+    color: var(--rigverse-neon-cyan);
+    text-shadow: 0 0 14px rgba(0, 243, 255, 0.5);
+  }
+
+  .neon-text-violet {
+    color: var(--rigverse-neon-violet);
+    text-shadow: 0 0 14px rgba(178, 75, 255, 0.5);
+  }
+
+  .neon-text-pink {
+    color: var(--rigverse-neon-pink);
+    text-shadow: 0 0 14px rgba(255, 0, 128, 0.5);
+  }
+
+  .neon-text-amber {
+    color: var(--rigverse-neon-amber);
+    text-shadow: 0 0 14px rgba(255, 184, 0, 0.5);
+  }
+
+  .btn-neon {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-xl font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, var(--rigverse-neon-cyan), var(--rigverse-neon-violet));
+    color: #000;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.35);
+  }
+
+  .btn-neon:hover {
+    box-shadow: 0 0 35px rgba(0, 243, 255, 0.6);
+    transform: translateY(-2px);
+  }
+
+  .btn-neon:active {
+    transform: translateY(0);
+  }
+
+  .category-card {
+    @apply glass-panel p-6 cursor-pointer transition-all duration-300 group;
+    border-color: var(--rigverse-border);
+  }
+
+  .category-card:hover {
+    border-color: var(--rigverse-border-hover);
+    transform: translateY(-4px);
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.15);
+  }
+
+  .category-card.selected {
+    border-color: var(--rigverse-neon-cyan);
+    box-shadow: 0 0 45px rgba(0, 243, 255, 0.25);
+  }
+
+  .price-chip {
+    @apply px-3 py-1.5 rounded-lg font-mono text-xs font-bold border;
+    background: rgba(0, 243, 255, 0.1);
+    border-color: rgba(0, 243, 255, 0.35);
+    color: var(--rigverse-neon-cyan);
+  }
+
+  .compat-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+  }
+
+  .compat-ok {
+    @apply bg-green/10 border border-green/30 text-green;
+  }
+
+  .compat-warn {
+    @apply bg-amber/10 border border-amber/30 text-amber;
+  }
+
+  .compat-error {
+    @apply bg-rose/10 border border-rose/30 text-rose;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes rigverse-pulse {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 40px rgba(0, 243, 255, 0.5);
+  }
+}
+
+.animate-rigverse-pulse {
+  animation: rigverse-pulse 2.5s ease-in-out infinite;
+}

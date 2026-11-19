@@ -1,0 +1,49 @@
+{
+  "name": "rigverse",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RIGVERSE — Build Your World. Piece by Piece. A premium gaming PC and setup configurator.",
+  "workspaces": [
+    "apps/web",
+    "apps/api",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm:dev:web\" \"npm:dev:api\"",
+    "dev:web": "cd apps/web && next dev",
+    "dev:api": "cd apps/api && pnpm run dev",
+    "build": "npm run build:web && npm run build:api",
+    "build:web": "cd apps/web && next build",
+    "build:api": "cd apps/api && pnpm run build",
+    "start": "cd apps/web && next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "prisma:generate": "cd apps/api && prisma generate",
+    "prisma:migrate": "cd apps/api && prisma migrate dev",
+    "prisma:seed": "cd apps/api && prisma db seed",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "db:up": "docker-compose up -d db redis",
+    "db:down": "docker-compose down"
+  },
+  "dependencies": {
+    "framer-motion": "^11.11.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "next": "^14.2.4",
+    "zustand": "^4.5.2",
+    "@reduxjs/toolkit": "^2.2.7",
+    "@langchain/core": "^0.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
