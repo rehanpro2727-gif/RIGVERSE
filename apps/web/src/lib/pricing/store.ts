@@ -4,8 +4,7 @@
 // For now, provides trigger logic and snapshot refresh flow.
 
 import { usePricingStore } from '@/stores/pricing';
-import { RETAILERS } from '@shared/types/constants';
-import { PriceFreshness } from '@shared/types';
+import { CATALOG, buildDemoSnapshot } from '@/lib/catalog';
 import type { PriceSnapshot } from '@/models/price';
 
 const RETRY_LIMIT = 3;
@@ -19,8 +18,11 @@ export interface RefreshResult {
 }
 
 /**
- * Refresh all snapshots for the current build's selected components.
+ * Refresh snapshots for the given products (e.g. the current build's selection).
  * Called by the pricing store background job or manual refresh.
+ *
+ * Until real scrapers exist, a refresh re-stamps the existing snapshot
+ * (or builds a demo one for catalog products) instead of overwriting prices with zeros.
  */
 export async function refreshBuildPrices(productIds: string[]): Promise<RefreshResult[]> {
   const results: RefreshResult[] = [];
@@ -37,22 +39,21 @@ export async function refreshBuildPrices(productIds: string[]): Promise<RefreshR
         // const rawListings = await scrapeRetailerListings(productId);
         // const { records } = normalizeListings(rawListings);
         // const snap = aggregate(records, sellersById);
-        snapshot = {
-          productId,
-          bestPrice: 0,
-          bestSellerId: '',
-          bestSellerName: '',
-          sellers: [],
-          avgPrice: 0,
-          priceRange: { min: 0, max: 0 },
-          freshness: PriceFreshness.LIVE,
-          lastUpdated: new Date(),
-          priceHistory: [],
-        };
+        const existing = usePricingStore.getState().snapshots[productId];
+        const product = CATALOG.find((p) => p.id === productId);
+        if (existing) {
+          snapshot = { ...existing, lastUpdated: new Date() };
+        } else if (product) {
+          snapshot = buildDemoSnapshot(product);
+        } else {
+          throw new Error(`No price source for product "${productId}"`);
+        }
         success = true;
-      } catch (e) {
+      } catch {
         success = false;
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        if (attempts < RETRY_LIMIT) {
+          await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        }
       }
     }
 
@@ -70,13 +71,25 @@ export async function refreshBuildPrices(productIds: string[]): Promise<RefreshR
 }
 
 /**
+ * Make sure every catalog product has a price snapshot (demo data).
+ * Existing snapshots, including persisted ones, are left untouched.
+ */
+export function seedDemoSnapshots(): void {
+  const { snapshots, setSnapshot } = usePricingStore.getState();
+  for (const product of CATALOG) {
+    if (!snapshots[product.id]) {
+      setSnapshot(buildDemoSnapshot(product));
+    }
+  }
+}
+
+/**
  * Get best price for a product as displayed in UI.
- * Returns null if no snapshot exists or if data is stale.
+ * Returns null if no snapshot exists. The freshness label lets the UI flag stale data.
  */
 export function getDisplayPrice(productId: string): { price: number; freshness: string; sellerName: string } | null {
   const snapshot = usePricingStore.getState().getSnapshot(productId);
   if (!snapshot) return null;
-  const isFresh = ['LIVE', 'FRESH'].includes(snapshot.freshness);
   return {
     price: snapshot.bestPrice,
     freshness: snapshot.freshness,

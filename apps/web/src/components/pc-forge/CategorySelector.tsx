@@ -26,7 +26,7 @@ export function CategorySelector({
   selectedCategory,
   onCategorySelect,
 }: CategorySelectorProps) {
-  const { components } = useBuildStore();
+  const components = useBuildStore((s) => s.components);
 
   return (
     <div className="grid grid-cols-4 md:grid-cols-8 gap-2">

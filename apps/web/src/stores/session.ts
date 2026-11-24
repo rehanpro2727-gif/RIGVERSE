@@ -3,7 +3,7 @@
 // and session persistence across reloads.
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { GUEST_SESSION_STORAGE_KEY, ACCESS_TOKEN_COOKIE, REFRESH_TOKEN_COOKIE, GUEST_COOKIE } from '@shared/types/constants';
 import { User, UserPreferences, Session } from '@/models/user';
 import { Build, BuildComponent } from '@/models/build';
@@ -81,7 +81,7 @@ export const useSessionStore = create<SessionStoreState>()(
           set({ ...get(), error: 'Authentication failed' });
           throw e;
         } finally {
-          set({ ...get(), isLoading: false, loadingMessages: { ...get().loadingMessages, ...(get().loadingMessages && { auth: undefined } as any) } });
+          set({ ...get(), isLoading: false, loadingMessages: omitKey(get().loadingMessages, 'auth') });
         }
       },
 
@@ -104,7 +104,7 @@ export const useSessionStore = create<SessionStoreState>()(
           set({ ...get(), error: 'Google authentication failed' });
           throw e;
         } finally {
-          set({ ...get(), isLoading: false, loadingMessages: { ...get().loadingMessages, ...(get().loadingMessages && { auth: undefined } as any) } });
+          set({ ...get(), isLoading: false, loadingMessages: omitKey(get().loadingMessages, 'auth') });
         }
       },
 
@@ -138,25 +138,33 @@ export const useSessionStore = create<SessionStoreState>()(
         }
       },
 
+      // Reuse the persisted guest id so a returning visitor keeps the same session.
       setGuestSession() {
-        const guestId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const guestId =
+          get().guestId ?? `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         set({
           ...get(),
           guestId,
           isAuthenticated: false,
         });
-        localStorage.setItem(GUEST_COOKIE, guestId);
+        try {
+          localStorage.setItem(GUEST_SESSION_STORAGE_KEY, guestId);
+          localStorage.setItem(GUEST_COOKIE, guestId);
+        } catch {
+          // storage unavailable (private mode, quota) — the session still works in memory
+        }
       },
 
       hydrateSession: async () => {
         set({ ...get(), isLoading: true, loadingMessages: { ...get().loadingMessages, session: 'Hydrating session...' } });
         try {
-          const guestId = localStorage.getItem(GUEST_SESSION_STORAGE_KEY);
-          const user = guestId ? (() => { const { id, ...rest } = guestUser; return { id: guestId, ...rest }; })() : null;
-          const session = guestId ? await createSession(user || guestUser) : null;
+          const guestId = get().guestId ?? localStorage.getItem(GUEST_SESSION_STORAGE_KEY);
+          const user: User | null = guestId ? { ...guestUser, id: guestId } : null;
+          const session = user ? await createSession(user) : null;
           set({
             ...get(),
-            isAuthenticated: !!user,
+            // A guest session is never an authenticated session.
+            isAuthenticated: false,
             user,
             session,
             currentBuild: null,
@@ -166,7 +174,7 @@ export const useSessionStore = create<SessionStoreState>()(
         } catch (e) {
           set({ ...get(), error: 'Session hydration failed' });
         } finally {
-          set({ ...get(), isLoading: false, loadingMessages: { ...get().loadingMessages, session: undefined as any } });
+          set({ ...get(), isLoading: false, loadingMessages: omitKey(get().loadingMessages, 'session') });
         }
       },
 
@@ -218,7 +226,9 @@ export const useSessionStore = create<SessionStoreState>()(
     }),
     {
       name: 'rigverse-session',
-      getStorage: () => localStorage,
+      storage: createJSONStorage(() => localStorage),
+      // Hydrated manually after mount (see StoreHydrator) to avoid SSR hydration mismatches
+      skipHydration: true,
       partialize: (state) => ({
         guestId: state.guestId,
         savedBuilds: state.savedBuilds,
@@ -228,6 +238,11 @@ export const useSessionStore = create<SessionStoreState>()(
     }
   )
 );
+
+function omitKey(record: Record<string, string>, key: string): Record<string, string> {
+  const { [key]: _removed, ...rest } = record;
+  return rest;
+}
 
 // --- Simulation helpers (replace with actual API calls) ---
 async function simulateLogin(email: string, password: string): Promise<User> {

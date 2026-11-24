@@ -1,6 +1,10 @@
 // RIGVERSE — Seller & Shipping Data Models
 
 import type { SellerType } from '@shared/types';
+import type { PriceRecord } from './price';
+
+// PriceRecord lives in ./price; re-exported so existing imports from here keep working.
+export type { PriceRecord };
 
 export interface ShippingPolicy {
   freeAbove: number;           // INR order value for free shipping
@@ -10,20 +14,6 @@ export interface ShippingPolicy {
     max: number;
   };
   cashOnDelivery: boolean;
-}
-
-export interface PriceRecord {
-  id: string;
-  productId: string;
-  sellerId: string;
-  price: number;
-  originalPrice?: number;
-  inStock: boolean;
-  stockQty?: number;
-  scrapedAt: Date;
-  url: string;
-  currency: 'INR';
-  contentHash: string;
 }
 
 export interface ScrapeLog {

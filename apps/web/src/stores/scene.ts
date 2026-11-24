@@ -1,13 +1,14 @@
 // RIGVERSE — Scene Store (Zustand)
 // Manages the 3D scene state: camera rig, lighting, environment, decor,
-// postFX settings, and room theme.
+// postFX settings, render quality and room theme.
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { RoomTheme } from '@shared/types';
-import { BuildStage } from '@shared/types/enums';
-import { SceneDescriptor, CameraPreset, LightingRig, PostFXSettings } from '@/models/scene';
-import { DEFAULT_DPR_CAP, MOBILE_MAX_DPR, MAX_TRIANGLE_BUDGET, PSU_HEADROOM_FACTOR } from '@shared/types/constants';
+import type { SceneDescriptor, CameraPreset, LightingRig, PostFXSettings } from '@/models/scene';
+import { DEFAULT_DPR_CAP, MOBILE_MAX_DPR, MAX_TRIANGLE_BUDGET } from '@shared/types/constants';
+
+export const MIN_TRIANGLE_BUDGET = 10_000;
 
 interface SceneState {
   cameraPosition: [number, number, number];
@@ -23,6 +24,10 @@ interface SceneStoreState {
   sceneState: SceneState;
   lightingRig: LightingRig | null;
   postFx: PostFXSettings;
+  /** Device pixel ratio cap for the renderer */
+  dprCap: number;
+  /** Maximum triangles the scene may render */
+  triangleBudget: number;
   isInitialized: boolean;
   activeCameraPreset: CameraPreset | null;
 
@@ -79,7 +84,7 @@ const showcaseScene: SceneDescriptor = {
   postFx: { bloom: true, bloomIntensity: 0.8, chromaticAberration: true, filmGrain: true, vignette: true },
 };
 
-export const SCENES: Record<string, SceneDescriptor> = {
+export const SCENES: Record<'forge' | 'studio' | 'showcase', SceneDescriptor> = {
   forge: forgeScene,
   studio: studioScene,
   showcase: showcaseScene,
@@ -108,6 +113,13 @@ export const initialLightingRig: LightingRig = {
   ambient: { intensity: 0.35, color: '#1A1A2E' },
 };
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+type PersistedScene = Pick<
+  SceneStoreState,
+  'scene' | 'currentSceneId' | 'sceneState' | 'postFx' | 'dprCap' | 'triangleBudget'
+>;
+
 export const useSceneStore = create<SceneStoreState>()(
   persist(
     (set, get) => ({
@@ -116,96 +128,87 @@ export const useSceneStore = create<SceneStoreState>()(
       sceneState: initialSceneState,
       lightingRig: initialLightingRig,
       postFx: initialPostFx,
+      dprCap: DEFAULT_DPR_CAP,
+      triangleBudget: MAX_TRIANGLE_BUDGET,
       isInitialized: false,
       activeCameraPreset: null,
 
       setCurrentScene(sceneId) {
         const scene = SCENES[sceneId];
-        set({
-          ...get(),
+        const [px, py, pz] = scene.camera.position;
+        const [tx, ty, tz] = scene.camera.target;
+        set((s) => ({
           currentSceneId: sceneId,
           scene,
-          sceneState: { ...get().sceneState, cameraPosition: [...scene.camera.position], cameraTarget: [...scene.camera.target] },
-        });
+          sceneState: { ...s.sceneState, cameraPosition: [px, py, pz], cameraTarget: [tx, ty, tz] },
+        }));
       },
 
       updateSceneState(patch) {
-        set({ ...get(), sceneState: { ...get().sceneState, ...patch } });
+        set((s) => ({ sceneState: { ...s.sceneState, ...patch } }));
       },
 
       updateLightingRig(patch) {
-        set({ ...get(), lightingRig: { ...get().lightingRig!, ...patch } });
+        set((s) => ({ lightingRig: { ...(s.lightingRig ?? initialLightingRig), ...patch } }));
       },
 
       setPostFx(patch) {
-        set({ ...get(), postFx: { ...get().postFx, ...patch } });
+        set((s) => ({ postFx: { ...s.postFx, ...patch } }));
       },
 
       setRoomTheme(theme) {
-        set({
-          ...get(),
-          sceneState: { ...get().sceneState, roomTheme: theme },
-        });
+        set((s) => ({ sceneState: { ...s.sceneState, roomTheme: theme } }));
       },
 
       setCameraPreset(preset) {
-        set({ ...get(), activeCameraPreset: preset });
+        set({ activeCameraPreset: preset });
       },
 
       addDecorItem(item) {
-        set({
-          ...get(),
-          sceneState: {
-            ...get().sceneState,
-            decorItems: [...get().sceneState.decorItems, item],
-          },
-        });
+        set((s) => ({
+          sceneState: { ...s.sceneState, decorItems: [...s.sceneState.decorItems, item] },
+        }));
       },
 
       removeDecorItem(index) {
-        set({
-          ...get(),
+        set((s) => ({
           sceneState: {
-            ...get().sceneState,
-            decorItems: get().sceneState.decorItems.filter((_item, i) => i !== index),
+            ...s.sceneState,
+            decorItems: s.sceneState.decorItems.filter((_item, i) => i !== index),
           },
-        });
+        }));
       },
 
-      setEnvironment(type: 'hdr' | 'gradient' | 'solid') {
-        set({
-          ...get(),
-          scene: get().scene ? { ...get().scene, environment: { type } } as SceneDescriptor | null : get().scene,
-        });
+      setEnvironment(type) {
+        const scene = get().scene;
+        if (!scene) return;
+        // Keep any existing colour/url so switching types doesn't lose them.
+        set({ scene: { ...scene, environment: { ...scene.environment, type } } });
       },
 
       setDprCap(dpr) {
-        set({
-          ...get(),
-          scene: get().scene ? ({ ...get().scene, postFx: { ...get().postFx, bloomIntensity: get().postFx.bloomIntensity } } as SceneDescriptor) : get().scene,
-        });
-        void dpr;
+        set({ dprCap: clamp(dpr, MOBILE_MAX_DPR, DEFAULT_DPR_CAP) });
       },
 
       setTriangleBudget(budget) {
-        set({
-          ...get(),
-          scene: get().scene ? ({ ...get().scene } as SceneDescriptor) : get().scene,
-        });
-        void budget;
+        set({ triangleBudget: clamp(Math.round(budget), MIN_TRIANGLE_BUDGET, MAX_TRIANGLE_BUDGET) });
       },
     }),
     {
       name: 'rigverse-scene',
-      getStorage: () => localStorage,
-      partialize: (state) => ({
+      storage: createJSONStorage(() => localStorage),
+      // Hydrated manually after mount (see StoreHydrator) to avoid SSR hydration mismatches
+      skipHydration: true,
+      partialize: (state): PersistedScene => ({
+        scene: state.scene,
         currentSceneId: state.currentSceneId,
         sceneState: state.sceneState,
         postFx: state.postFx,
-        roomTheme: state.sceneState.roomTheme,
+        dprCap: state.dprCap,
+        triangleBudget: state.triangleBudget,
       }),
-    }
-  )
+    },
+  ),
 );
 
 export type SceneStore = ReturnType<typeof useSceneStore>;

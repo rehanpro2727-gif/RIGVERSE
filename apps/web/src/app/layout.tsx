@@ -1,9 +1,11 @@
 // RIGVERSE — Root Layout
 // Global providers, fonts, and base styles.
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
+import { StoreHydrator } from '@/components/store-hydrator';
+import { Toaster } from '@/components/toaster';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -13,14 +15,14 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: 'RIGVERSE — Build Your Legend',
-  description: 'India\'s most immersive PC configurator. Real prices. Live compatibility. 3D assembly.',
+  description: "India's most immersive PC configurator. Real prices. Live compatibility. 3D assembly.",
+};
+
+// Next.js 14 wants viewport and themeColor in their own export, not in metadata.
+export const viewport: Viewport = {
   themeColor: '#0B0B14',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -30,12 +32,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} antialiased`}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      </head>
-      <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden">
+      <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden font-sans">
+        <StoreHydrator />
         {children}
+        <Toaster />
       </body>
     </html>
   );

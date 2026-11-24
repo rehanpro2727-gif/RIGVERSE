@@ -5,4 +5,4 @@ export { aggregate, isPriceFresh } from './aggregator';
 export { calculateFreshness, getFreshnessInfo, isPriceStale, getAgeInSeconds } from './freshness';
 export type { RawListing, NormalizeResult } from './normalize';
 
-export { type PriceFreshness } from '@shared/types';
+export { PriceFreshness } from '@shared/types';

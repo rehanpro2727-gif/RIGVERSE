@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresql"]
 }
 
 datasource db {
@@ -60,6 +59,8 @@ model Product {
   updatedAt   DateTime     @updatedAt
 
   prices      PriceRecord[]
+  snapshots   PriceSnapshot[]
+  alerts      PriceAlert[]
   compatOut   CompatibilityCheck[]
 
   @@index([category])
@@ -81,6 +82,7 @@ model Seller {
   createdAt     DateTime      @default(now())
 
   prices        PriceRecord[]
+  pricePoints   PricePoint[]
   scrapeLogs    ScrapeLog[]
 
   @@index([domain])
@@ -181,6 +183,7 @@ model Build {
 
   user        User?        @relation(fields: [userId], references: [id])
   shares      BuildShare[]
+  savedBy     SavedBuild[]
 
   @@index([userId])
   @@index([shareSlug])

@@ -1,34 +1,35 @@
-# RIGVERSE – Live Build Tracker
+# RIGVERSE – Web app
 
-## Quick Start
+## Quick start
 
-1. **Install dependencies**
-   ```bash
-   cd C:\Users\user\GOOFEDMIND\apps\web
-   npm install
-   ```
+From the **repo root** (this is an npm workspaces monorepo: `apps/web`, `apps/api`, `shared`):
 
-2. **Run the development server**
-   ```bash
-   npm run dev
-   ```
-   The app will be available at `http://localhost:3000`.
+```bash
+npm install
+npm run dev:web      # web only, http://localhost:3000
+npm run dev          # web + api (needs apps/api/src)
+```
 
-3. **Build for production**
-   ```bash
-   npm run build
-   npm start
-   ```
+Other useful scripts (run from the root):
 
-## What this repo contains
-- A three‑stage PC configurator (Forge → Studio → Showcase)
-- Zustand stores with persist middleware (`session`, `build`, `scene`, `ui`, `pricing`, `hooks`)
-- Live price aggregation with auto‑refresh toggle
-- Compatibility checking across components
+```bash
+npm run typecheck    # tsc on the web app
+npm run build:web    # production build
+```
+
+## What this app contains
+- A three-stage PC configurator (Forge → Studio → Showcase)
+- Zustand stores with persist middleware (`session`, `build`, `scene`, `ui`, `pricing`), hydrated after mount by `StoreHydrator`
+- Demo product catalog and demo prices (`src/lib/catalog.ts`) standing in for the API
+- Live price aggregation with an auto-refresh toggle
+- Compatibility checking across components (`src/lib/engine/check.ts`)
 - 3D scene controls (environment, DPR cap, triangle budget)
 - Neon UI theme (cyan, violet, pink, amber)
 
-## Known issue resolved
-- Added `apps/web/next.config.js` to resolve `@/*` and `@shared/*` path aliases, fixing the dev server import errors.
+## Path aliases
+Defined in `tsconfig.json` and picked up by Next.js:
 
-Feel free to explore the code under `src/` and contribute!
+| Alias | Points to |
+|---|---|
+| `@/*` | `apps/web/src/*` |
+| `@shared/*` | `shared/src/*` (outside this folder, so `next.config.js` enables `experimental.externalDir`) |
