@@ -23,6 +23,8 @@ interface SceneStoreState {
   sceneState: SceneState;
   lightingRig: LightingRig | null;
   postFx: PostFXSettings;
+  dprCap: number;
+  triangleBudget: number;
   isInitialized: boolean;
   activeCameraPreset: CameraPreset | null;
 
@@ -116,6 +118,8 @@ export const useSceneStore = create<SceneStoreState>()(
       sceneState: initialSceneState,
       lightingRig: initialLightingRig,
       postFx: initialPostFx,
+      dprCap: DEFAULT_DPR_CAP,
+      triangleBudget: MAX_TRIANGLE_BUDGET,
       isInitialized: false,
       activeCameraPreset: null,
 
@@ -182,17 +186,15 @@ export const useSceneStore = create<SceneStoreState>()(
       setDprCap(dpr) {
         set({
           ...get(),
-          scene: get().scene ? ({ ...get().scene, postFx: { ...get().postFx, bloomIntensity: get().postFx.bloomIntensity } } as SceneDescriptor) : get().scene,
+          dprCap: dpr,
         });
-        void dpr;
       },
 
       setTriangleBudget(budget) {
         set({
           ...get(),
-          scene: get().scene ? ({ ...get().scene } as SceneDescriptor) : get().scene,
+          triangleBudget: budget,
         });
-        void budget;
       },
     }),
     {
@@ -202,6 +204,8 @@ export const useSceneStore = create<SceneStoreState>()(
         currentSceneId: state.currentSceneId,
         sceneState: state.sceneState,
         postFx: state.postFx,
+        dprCap: state.dprCap,
+        triangleBudget: state.triangleBudget,
         roomTheme: state.sceneState.roomTheme,
       }),
     }

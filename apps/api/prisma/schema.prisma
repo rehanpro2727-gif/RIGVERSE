@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  previewFeatures = ["postgresql"]
 }
 
 datasource db {
@@ -35,23 +34,25 @@ enum UserRole {
 
 model Session {
   id           String   @id @default(uuid())
-  userId       String
+  userId       String?
+  guestId      String?
   refreshToken String   @unique
   userAgent    String?
   ip           String?
   expiresAt    DateTime
   createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Product {
   id          String       @id @default(uuid())
   slug        String       @unique
   name        String
-  brand       String
+  brand       String?
   category    String       // ComponentCategory | AccessoryCategory
-  subcategory String
+  subcategory String?
   specs       Json          // ComponentSpecs — discriminated by category
   description String?
   imageUrl    String
@@ -59,7 +60,10 @@ model Product {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  prices      PriceRecord[]
+  prices         PriceRecord[]
+  priceSnapshots PriceSnapshot[]
+  pricePoints    PricePoint[]
+  priceAlerts    PriceAlert[]
   compatOut   CompatibilityCheck[]
 
   @@index([category])
@@ -72,6 +76,8 @@ model Seller {
   id            String        @id @default(uuid())
   name          String        @unique
   domain        String
+  website       String?
+  contactEmail  String?
   logoUrl       String?
   type          SellerType
   region        String        @default("pan-india")
@@ -81,8 +87,8 @@ model Seller {
   createdAt     DateTime      @default(now())
 
   prices        PriceRecord[]
+  pricePoints   PricePoint[]
   scrapeLogs    ScrapeLog[]
-
   @@index([domain])
 }
 
@@ -136,6 +142,7 @@ model PricePoint {
   price     Float
   sellerId  String
   seller    Seller   @relation(fields: [sellerId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
   @@index([productId, date])
 }
 
@@ -181,6 +188,7 @@ model Build {
 
   user        User?        @relation(fields: [userId], references: [id])
   shares      BuildShare[]
+  savedBuilds SavedBuild[]
 
   @@index([userId])
   @@index([shareSlug])

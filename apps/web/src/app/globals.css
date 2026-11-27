@@ -19,6 +19,8 @@
     --rigverse-neon-pink: #ff0080;
     --rigverse-neon-amber: #ffb800;
     --rigverse-shadow-glow: 0 0 30px rgba(0, 243, 255, 0.12);
+    --font-heading: var(--font-orbitron);
+    --font-body: var(--font-space-grotesk);
   }
 
   html {
@@ -28,7 +30,16 @@
   body {
     background-color: var(--rigverse-bg);
     color: var(--rigverse-text);
+    font-family: var(--font-body);
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
   }
 }
 

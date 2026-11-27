@@ -9,12 +9,12 @@ import { useBuildTotals } from '@/hooks/stores';
 import { ComponentCategory, BuildStage } from '@shared/types';
 import { DEFAULT_DPR_CAP, MOBILE_MAX_DPR, MAX_TRIANGLE_BUDGET } from '@shared/types/constants';
 import { SceneControls } from '@/components/scene-controls';
-import { Accessory } from '@/models/build';
+import { Accessory, BuildComponent } from '@/models/build';
 import { PriceSnapshot } from '@/models/price';
 
 export function ShowcasePanel() {
   const { components, accessories, stage, setStage } = useBuildStore();
-  const { snapshots, autoRefreshEnabled } = usePricingStore();
+  const { snapshots } = usePricingStore();
   const totals = useBuildTotals();
   const { showToast } = useUIStore();
 
@@ -30,7 +30,7 @@ export function ShowcasePanel() {
 
   // Calculate display price from snapshots
   let displayPrice = 0;
-  if (snapshots.size > 0) {
+  if (Object.keys(snapshots).length > 0) {
     const firstSnap = Object.values(snapshots)[0];
     displayPrice = typeof firstSnap?.bestPrice === 'number' ? firstSnap.bestPrice : 0;
   } else {
@@ -46,6 +46,18 @@ export function ShowcasePanel() {
     CHAIR: 'Gaming Chair',
     DESK: 'Gaming Desk',
     DECOR: 'RGB Poster',
+  };
+
+  // Look up live price for a component from pricing snapshots
+  const componentPrice = (comp: BuildComponent) => {
+    const snap = snapshots[comp.productId];
+    return snap?.bestPrice ?? 0;
+  };
+
+  // Look up live price for an accessory from pricing snapshots
+  const accessoryPrice = (acc: Accessory) => {
+    const snap = snapshots[acc.productId];
+    return snap?.bestPrice ?? 0;
   };
 
   return (
@@ -64,8 +76,8 @@ export function ShowcasePanel() {
             <p className="text-2xl font-bold text-rigverse-neon-amber">₹{totals.total.toLocaleString('en-IN')}</p>
           </div>
           <div>
-            <p className="text-sm text-rigverse-muted mb-1">Savings</p>
-            <p className="text-2xl font-bold text-rigverse-neon-violet">₹{totals.savingsVsMrp.toLocaleString('en-IN')}</p>
+            <p className="text-sm text-rigverse-muted mb-1">Shipping</p>
+            <p className="text-2xl font-bold text-rigverse-neon-violet">₹{totals.shipping.toLocaleString('en-IN')}</p>
           </div>
         </div>
       </div>
@@ -75,13 +87,14 @@ export function ShowcasePanel() {
         <div className="space-y-4">
           {Object.entries(components).map(([key, comp]) => {
             if (!comp || !comp.productId) return null;
+            const price = componentPrice(comp);
             return (
               <div key={comp.productId} className="p-4 border rounded-lg border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{key}</span>
-                  <span className="text-rigverse-neon-cyan">₹{comp.price?.toLocaleString('en-IN') || '0'}</span>
+                  <span className="text-rigverse-neon-cyan">₹{price.toLocaleString('en-IN')}</span>
                 </div>
-                <p className="text-xs text-rigverse-muted">{comp.description || ''}</p>
+                <p className="text-xs text-rigverse-muted">{comp.category}</p>
               </div>
             );
           })}
@@ -94,10 +107,11 @@ export function ShowcasePanel() {
           {accessories.map((acc) => {
             if (!acc.productId) return null;
             const name = accessoryNames[acc.category] || acc.category;
+            const price = accessoryPrice(acc);
             return (
               <div key={acc.productId} className="p-3 border rounded-lg border-white/10">
                 <span className="font-medium text-rigverse-neon-violet">{name}</span>
-                <span className="text-xs text-rigverse-muted">₹{acc.price?.toLocaleString('en-IN') || '0'}</span>
+                <span className="text-xs text-rigverse-muted">₹{price.toLocaleString('en-IN')}</span>
               </div>
             );
           })}

@@ -15,10 +15,11 @@ export function SceneControls() {
   const setEnvironment = useSceneStore((s) => s.setEnvironment);
   const setDprCap = useSceneStore((s) => s.setDprCap);
   const setTriangleBudget = useSceneStore((s) => s.setTriangleBudget);
+  const setPostFx = useSceneStore((s) => s.setPostFx);
 
   const envType = scene?.environment?.type ?? 'gradient';
-  const dprCap = postFx?.bloomIntensity ?? DEFAULT_DPR_CAP;
-  const triangleBudget = MAX_TRIANGLE_BUDGET;
+  const dprCap = useSceneStore((s) => s.dprCap) ?? DEFAULT_DPR_CAP;
+  const triangleBudget = useSceneStore((s) => s.triangleBudget) ?? MAX_TRIANGLE_BUDGET;
 
   return (
     <div className="glass-panel p-6 space-y-6">
@@ -84,6 +85,72 @@ export function SceneControls() {
         <div className="flex justify-between text-[10px] text-rigverse-muted mt-1">
           <span>10k</span>
           <span>{MAX_TRIANGLE_BUDGET.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Post FX */}
+      <div>
+        <label className="block text-sm text-rigverse-muted mb-2">Post Processing</label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div>
+            <button
+              onClick={() => setPostFx({ bloom: !postFx.bloom })}
+              className={`w-full py-2 rounded-lg text-sm font-semibold transition-all ${
+                postFx.bloom
+                  ? 'bg-rigverse-neon-cyan/20 text-rigverse-neon-cyan border border-rigverse-neon-cyan'
+                  : 'bg-white/5 text-white border border-white/10 hover:bg-white/10'
+              }`}
+            >
+              Bloom: {postFx.bloom ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={postFx.chromaticAberration}
+                onChange={(e) => setPostFx({ chromaticAberration: e.target.checked })}
+                className="accent-rigverse-neon-violet"
+              />
+              Chromatic Aberration
+            </label>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={postFx.filmGrain}
+                onChange={(e) => setPostFx({ filmGrain: e.target.checked })}
+                className="accent-rigverse-neon-pink"
+              />
+              Film Grain
+            </label>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={postFx.vignette}
+                onChange={(e) => setPostFx({ vignette: e.target.checked })}
+                className="accent-rigverse-neon-amber"
+              />
+              Vignette
+            </label>
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm text-rigverse-muted mb-2">
+            Bloom Intensity: <span className="text-rigverse-neon-cyan font-mono">{postFx.bloomIntensity.toFixed(1)}</span>
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={2}
+            step={0.1}
+            value={postFx.bloomIntensity}
+            onChange={(e) => setPostFx({ bloomIntensity: parseFloat(e.target.value) })}
+            className="w-full accent-rigverse-neon-cyan"
+          />
         </div>
       </div>
     </div>

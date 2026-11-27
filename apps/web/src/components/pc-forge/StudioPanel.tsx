@@ -11,6 +11,16 @@ import { useBuildTotals } from '@/hooks/stores';
 import { FAKE_PRODUCTS } from './ProductCard';
 import { DEFAULT_DPR_CAP, MOBILE_MAX_DPR, MAX_TRIANGLE_BUDGET } from '@shared/types/constants';
 import { SceneControls } from '@/components/scene-controls';
+import { Accessory } from '@/models/build';
+
+// Catalog entry: display-only fields, separate from the Accessory model
+interface AccessoryCatalogEntry {
+  productId: string;
+  name: string;
+  category: AccessoryCategory;
+  price: number;
+  description: string;
+}
 
 export function StudioPanel() {
   const { components, removeComponent, toggleComponentLock, toggleComponentHidden, runCompatibilityCheck, stage, setStage, accessories, addAccessory, removeAccessory } = useBuildStore();
@@ -20,15 +30,15 @@ export function StudioPanel() {
 
   const selectedComponent = Object.values(components).find(c => c?.productId) || null;
 
-  // Accessory catalog for studio stage
-  const ACCESSORIES = [
-    { id: 'monitor-456', name: 'Monitor 27" QHD', category: AccessoryCategory.MONITOR, price: 18999, description: 'High refresh rate, IPS panel' },
-    { id: 'keyboard-789', name: 'Mechanical Keyboard', category: AccessoryCategory.KEYBOARD, price: 9999, description: 'RGB backlit, blue switches' },
-    { id: 'mouse-123', name: 'Gaming Mouse', category: AccessoryCategory.MOUSE, price: 4999, description: 'Ergonomic, 16000 DPI' },
-    { id: 'speakers-456', name: 'Desktop Speakers', category: AccessoryCategory.SPEAKERS, price: 7999, description: '2.1 channel, subwoofer' },
-    { id: 'chair-789', name: 'Gaming Chair', category: AccessoryCategory.CHAIR, price: 14999, description: 'Racing style, lumbar support' },
-    { id: 'desk-123', name: 'Gaming Desk', category: AccessoryCategory.DESK, price: 12999, description: 'L-shaped, cable management' },
-    { id: 'decor-456', name: 'RGB Poster', category: AccessoryCategory.DECOR, price: 2999, description: 'Neon cityscape artwork' },
+  // Accessory catalog for studio stage — display-only entries
+  const ACCESSORIES: AccessoryCatalogEntry[] = [
+    { productId: 'monitor-456', name: 'Monitor 27" QHD', category: AccessoryCategory.MONITOR, price: 18999, description: 'High refresh rate, IPS panel' },
+    { productId: 'keyboard-789', name: 'Mechanical Keyboard', category: AccessoryCategory.KEYBOARD, price: 9999, description: 'RGB backlit, blue switches' },
+    { productId: 'mouse-123', name: 'Gaming Mouse', category: AccessoryCategory.MOUSE, price: 4999, description: 'Ergonomic, 16000 DPI' },
+    { productId: 'speakers-456', name: 'Desktop Speakers', category: AccessoryCategory.SPEAKERS, price: 7999, description: '2.1 channel, subwoofer' },
+    { productId: 'chair-789', name: 'Gaming Chair', category: AccessoryCategory.CHAIR, price: 14999, description: 'Racing style, lumbar support' },
+    { productId: 'desk-123', name: 'Gaming Desk', category: AccessoryCategory.DESK, price: 12999, description: 'L-shaped, cable management' },
+    { productId: 'decor-456', name: 'RGB Poster', category: AccessoryCategory.DECOR, price: 2999, description: 'Neon cityscape artwork' },
   ];
 
   useEffect(() => {
@@ -42,15 +52,25 @@ export function StudioPanel() {
     setStage(BuildStage.SHOWCASE);
   };
 
-  // Handle accessory add/remove
-  const handleAddAccessory = (accessory: typeof ACCESSORIES[0]) => {
-    const existing = accessories.find(a => a.productId === accessory.id);
+  // Handle accessory add/remove — map catalog entry to Accessory model
+  const handleAddAccessory = (accessory: AccessoryCatalogEntry) => {
+    const existing = accessories.find(a => a.productId === accessory.productId);
     if (existing) {
       removeAccessory(accessories.indexOf(existing));
     } else {
-      addAccessory(accessory);
+      addAccessory({
+        productId: accessory.productId,
+        category: accessory.category,
+        position: [0, 0, 0],
+        rotation: [0, 0, 0],
+      });
     }
   };
+
+  // Helper: check if accessory is already selected
+  function isAccessorySelected(productId: string): boolean {
+    return accessories.some(a => a.productId === productId);
+  }
 
   return (
     <div className="max-w-7xl mx-auto p-6">
@@ -79,7 +99,7 @@ export function StudioPanel() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {ACCESSORIES.map((acc) => (
             <div
-              key={acc.id}
+              key={acc.productId}
               className="p-4 border rounded-lg border-white/10 hover:border-rigverse-neon-violet/30 transition-colors"
             >
               <div className="text-center mb-2">
@@ -91,10 +111,10 @@ export function StudioPanel() {
               <button
                 onClick={() => handleAddAccessory(acc)}
                 className="mt-2 px-3 py-1 text-xs font-semibold transition-all duration-150
-                  ${totals.accessoryPrice > 0 && !isAccessorySelected(acc.id) ? 'bg-rigverse-neon-violet/20' : 'bg-white/20'}
+                  ${totals.accessoryPrice > 0 && !isAccessorySelected(acc.productId) ? 'bg-rigverse-neon-violet/20' : 'bg-white/20'}
                   text-rigverse-neon-violet rounded"
               >
-                {isAccessorySelected(acc.id) ? 'Added' : 'Add'}
+                {isAccessorySelected(acc.productId) ? 'Added' : 'Add'}
               </button>
             </div>
           ))}
@@ -160,9 +180,4 @@ export function StudioPanel() {
       <SceneControls />
     </div>
   );
-}
-
-// Helper: check if accessory is already selected
-function isAccessorySelected(productId: string): boolean {
-  return accessories.some(a => a.productId === productId);
 }

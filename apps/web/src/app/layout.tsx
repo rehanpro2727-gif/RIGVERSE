@@ -2,12 +2,20 @@
 // Global providers, fonts, and base styles.
 
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Orbitron, Space_Grotesk } from 'next/font/google';
 import './globals.css';
 
-const inter = Inter({
+const orbitron = Orbitron({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-orbitron',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
   display: 'swap',
 });
 
@@ -29,12 +37,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} antialiased`}>
+    <html lang="en" className={`${orbitron.variable} ${spaceGrotesk.variable} antialiased`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden">
+      <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden font-body">
         {children}
       </body>
     </html>

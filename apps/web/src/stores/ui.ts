@@ -2,6 +2,7 @@
 // Manages UI state: theme, modals, toasts, notifications, mobile/responsive
 // breakpoints, and any other global UI flags.
 
+import { ReactNode } from 'react';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { RoomTheme } from '@shared/types';
@@ -45,6 +46,10 @@ interface UIStoreState {
   loadingMessages: Record<string, string>;
   error: string | null;
 
+  // Drawer (BottomDrawer / Expanded Details)
+  isDrawerOpen: boolean;
+  drawerContent: ReactNode | null;
+
   // Controls
   touchControls: boolean;
   hapticsEnabled: boolean;
@@ -56,6 +61,8 @@ interface UIStoreState {
   setStage(stage: BuildStage): void;
   setReducedMotion(enabled: boolean): void;
   toggleFullscreen(): void;
+  toggleDrawer(): void;
+  setDrawerContent(content: ReactNode | null): void;
 
   setDeviceBreakpoints(isMobile: boolean, isTablet: boolean, isDesktop: boolean): void;
   openModal(name: string, data?: Record<string, unknown>): void;
@@ -120,6 +127,9 @@ export const useUIStore = create<UIStoreState>()(
       loadingMessages: {},
       error: null,
 
+      isDrawerOpen: false,
+      drawerContent: null,
+
       touchControls: true,
       hapticsEnabled: true,
       mouseSensitive: 1,
@@ -142,6 +152,14 @@ export const useUIStore = create<UIStoreState>()(
 
       toggleFullscreen() {
         set({ ...get(), fullscreen: !get().fullscreen });
+      },
+
+      toggleDrawer() {
+        set({ ...get(), isDrawerOpen: !get().isDrawerOpen });
+      },
+
+      setDrawerContent(content) {
+        set({ ...get(), drawerContent: content });
       },
 
       setDeviceBreakpoints(isMobile, isTablet, isDesktop) {
