@@ -7,8 +7,10 @@ import { PriceFreshness, STALE_PRICE_MS, FRESH_PRICE_MS } from '@shared/types';
 /**
  * Calculate freshness from a snapshot's lastUpdated time.
  */
-export function calculateFreshness(lastUpdated: Date): PriceFreshness {
-  const ageMs = Date.now() - lastUpdated.getTime();
+export function calculateFreshness(lastUpdated: Date | string | number): PriceFreshness {
+  // Persisted snapshots come back from JSON with string dates, so accept those too.
+  const ageMs = Date.now() - new Date(lastUpdated).getTime();
+  if (Number.isNaN(ageMs)) return PriceFreshness.UNKNOWN;
   if (ageMs < STALE_PRICE_MS) return PriceFreshness.LIVE;        // < 6h
   if (ageMs < FRESH_PRICE_MS) return PriceFreshness.FRESH;       // < 24h
   if (ageMs < 7 * 24 * 60 * 60 * 1000) return PriceFreshness.STALE; // < 7d
@@ -50,6 +52,6 @@ export function isPriceStale(snapshot: PriceSnapshot): boolean {
 /**
  * Estimate how stale a price is in seconds.
  */
-export function getAgeInSeconds(lastUpdated: Date): number {
-  return Math.floor((Date.now() - lastUpdated.getTime()) / 1000);
+export function getAgeInSeconds(lastUpdated: Date | string | number): number {
+  return Math.floor((Date.now() - new Date(lastUpdated).getTime()) / 1000);
 }

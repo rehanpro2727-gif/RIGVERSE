@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+<<<<<<< HEAD
     "baseUrl": ".",
     "paths": {
       "@/*": [
@@ -9,17 +10,22 @@
         "../../shared/src/*"
       ]
     },
+=======
+    "target": "ES2022",
+    "lib": ["dom", "dom.iterable", "esnext"],
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "noEmit": true,
     "incremental": true,
-    "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
+<<<<<<< HEAD
     "plugins": [
       {
         "name": "next"
@@ -30,14 +36,21 @@
       "dom.iterable",
       "esnext"
     ]
+=======
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../../shared/src/*"]
+    },
+    "plugins": [{ "name": "next" }]
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
   },
   "include": [
     "next-env.d.ts",
     ".next/types/**/*.ts",
-    "**/*.ts",
-    "**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "../../shared/src/**/*.ts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }

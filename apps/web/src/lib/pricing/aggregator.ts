@@ -5,6 +5,7 @@
 import type { PriceRecord, SellerPrice, PriceSnapshot, PricePoint } from '@/models/price';
 import { PriceFreshness } from '@shared/types';
 import type { Seller } from '@/models/seller';
+import { calculateFreshness } from './freshness';
 
 /**
  * Extract shipping cost for a seller.
@@ -19,25 +20,15 @@ function getShippingForSeller(seller: Seller | null, price: number): number {
 }
 
 /**
- * Classify freshness based on how new the price data is.
- */
-function classifyFreshness(scrapedAt: Date): PriceFreshness {
-  const ageHours = (Date.now() - scrapedAt.getTime()) / (1000 * 60 * 60);
-  if (ageHours < 6) return PriceFreshness.LIVE;
-  if (ageHours < 24) return PriceFreshness.FRESH;
-  if (ageHours < 168) return PriceFreshness.STALE; // 7 days
-  return PriceFreshness.UNKNOWN;
-}
-
-/**
  * Aggregate price records into a single snapshot.
  *
  * Input:  Array of PriceRecord objects (same productId, different sellers)
  * Output: PriceSnapshot with best price, best seller, avg price, etc.
  */
 export function aggregate(records: PriceRecord[], allSellers: Map<string, Seller>): PriceSnapshot {
-  const inStock = records.filter((r) => r.inStock);
-  const outOfStock = records.filter((r) => !r.inStock);
+  if (records.length === 0) {
+    throw new Error('aggregate() needs at least one price record');
+  }
 
   const sellerPrices: SellerPrice[] = records.map((r) => {
     const seller = allSellers.get(r.sellerId) ?? null;
@@ -81,7 +72,8 @@ export function aggregate(records: PriceRecord[], allSellers: Map<string, Seller
     max: Math.max(...sellerPrices.map((s) => s.price)),
   };
 
-  const lastUpdated = records.length > 0 ? records[0].scrapedAt : new Date();
+  // Freshness follows the newest scrape, not whichever record happens to be first.
+  const lastUpdated = new Date(Math.max(...records.map((r) => r.scrapedAt.getTime())));
 
   return {
     productId: records[0].productId,
@@ -91,7 +83,7 @@ export function aggregate(records: PriceRecord[], allSellers: Map<string, Seller
     sellers: sellerPrices,
     avgPrice,
     priceRange,
-    freshness: classifyFreshness(lastUpdated),
+    freshness: calculateFreshness(lastUpdated),
     lastUpdated,
     priceHistory: records.map((r) => ({
       date: r.scrapedAt.toISOString().split('T')[0],

@@ -4,9 +4,31 @@
 
 import { ReactNode } from 'react';
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { RoomTheme } from '@shared/types';
-import { BuildStage } from '@shared/types/enums';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import { BuildStage, RoomTheme } from '@shared/types';
+
+export interface Toast {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  duration: number;
+  timestamp: number;
+}
+
+export interface NotificationAction {
+  label: string;
+  onClick: () => void;
+  variant?: 'primary' | 'secondary' | 'destructive';
+}
+
+export interface Notification {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+  actions?: NotificationAction[];
+  duration: number;
+  timestamp: number;
+}
 
 interface UIStoreState {
   // Theme & Presentation
@@ -25,21 +47,8 @@ interface UIStoreState {
   overlayStack: string[]; // ['build-summary', 'compatibility-report', etc.]
 
   // Notifications
-  toasts: Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    duration: number;
-    timestamp: number;
-  }>;
-  notifications: Array<{
-    id: string;
-    message: string;
-    type: 'success' | 'error' | 'warning' | 'info';
-    actions?: Array<{ label: string; onClick: () => void; variant?: 'primary' | 'secondary' | 'destructive' }>;
-    duration: number;
-    timestamp: number;
-  }>;
+  toasts: Toast[];
+  notifications: Notification[];
 
   // Loading & Status
   isLoading: boolean;
@@ -69,9 +78,9 @@ interface UIStoreState {
   closeModal(name?: string): void;
   pushOverlay(overlayId: string): void;
   popOverlay(): void;
-  showToast(message: string, type?: 'success' | 'error' | 'warning' | 'info', duration?: number): string;
+  showToast(message: string, type?: Toast['type'], duration?: number): string;
   hideToast(id: string): void;
-  showNotification(message: string, type?: 'success' | 'error' | 'warning' | 'info', actions?: NotificationAction[]): string;
+  showNotification(message: string, type?: Notification['type'], actions?: NotificationAction[], duration?: number): string;
   dismissNotification(id: string): void;
   setLoading(key: string, message: string): void;
   setLoadingGlobal(loading: boolean, message?: string): void;
@@ -81,28 +90,12 @@ interface UIStoreState {
   setMouseSensitivity(sensitivity: number): void;
 }
 
-export interface Toast {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  duration: number;
-  timestamp: number;
-}
+const uid = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-export interface Notification {
-  id: string;
-  message: string;
-  type: 'success' | 'error' | 'warning' | 'info';
-  actions?: NotificationAction[];
-  duration: number;
-  timestamp: number;
-}
-
-export interface NotificationAction {
-  label: string;
-  onClick: () => void;
-  variant?: 'primary' | 'secondary' | 'destructive';
-}
+type PersistedUI = Pick<
+  UIStoreState,
+  'theme' | 'roomTheme' | 'reducedMotion' | 'touchControls' | 'hapticsEnabled' | 'mouseSensitive'
+>;
 
 export const useUIStore = create<UIStoreState>()(
   persist(
@@ -135,23 +128,23 @@ export const useUIStore = create<UIStoreState>()(
       mouseSensitive: 1,
 
       setTheme(theme) {
-        set({ ...get(), theme });
+        set({ theme });
       },
 
       setRoomTheme(theme) {
-        set({ ...get(), roomTheme: theme });
+        set({ roomTheme: theme });
       },
 
       setStage(stage) {
-        set({ ...get(), stage });
+        set({ stage });
       },
 
       setReducedMotion(enabled) {
-        set({ ...get(), reducedMotion: enabled });
+        set({ reducedMotion: enabled });
       },
 
       toggleFullscreen() {
-        set({ ...get(), fullscreen: !get().fullscreen });
+        set((s) => ({ fullscreen: !s.fullscreen }));
       },
 
       toggleDrawer() {
@@ -163,114 +156,104 @@ export const useUIStore = create<UIStoreState>()(
       },
 
       setDeviceBreakpoints(isMobile, isTablet, isDesktop) {
-        set({ ...get(), isMobile, isTablet, isDesktop });
+        set({ isMobile, isTablet, isDesktop });
       },
 
       openModal(name, data) {
-        set({
-          ...get(),
-          activeModal: name,
-          modals: { ...get().modals, [name]: data },
-        });
+        set((s) => ({ activeModal: name, modals: { ...s.modals, [name]: data ?? {} } }));
       },
 
+      // closeModal(name) closes that modal; closeModal() closes whichever is active.
       closeModal(name) {
-        set({
-          ...get(),
-          activeModal: name ? (get().overlayStack.length > 0 ? get().overlayStack[get().overlayStack.length - 1] : null) : null,
-          modals: name ? { ...get().modals, [name]: undefined } : get().modals,
+        set((s) => {
+          const target = name ?? s.activeModal;
+          if (!target) return {};
+          const { [target]: _removed, ...rest } = s.modals;
+          return {
+            modals: rest,
+            activeModal: s.activeModal === target ? null : s.activeModal,
+          };
         });
-        if (!name) {
-          set({ ...get(), overlayStack: get().overlayStack.slice(0, -1) });
-        }
       },
 
       pushOverlay(overlayId) {
-        set({ ...get(), overlayStack: [...get().overlayStack, overlayId] });
+        set((s) => ({ overlayStack: [...s.overlayStack, overlayId] }));
       },
 
       popOverlay() {
-        set({ ...get(), overlayStack: get().overlayStack.slice(0, -1) });
+        set((s) => ({ overlayStack: s.overlayStack.slice(0, -1) }));
       },
 
       showToast(message, type = 'info', duration = 4000) {
-        const id = `toast_${Date.now()}`;
+        const id = uid('toast');
         const toast: Toast = { id, message, type, duration, timestamp: Date.now() };
-        set({ ...get(), toasts: [...get().toasts, toast] });
+        set((s) => ({ toasts: [...s.toasts, toast] }));
         if (duration > 0) {
-          setTimeout(() => {
-            set({ ...get(), toasts: get().toasts.filter((t) => t.id !== id) });
-          }, duration);
+          setTimeout(() => get().hideToast(id), duration);
         }
         return id;
       },
 
       hideToast(id) {
-        set({ ...get(), toasts: get().toasts.filter((t) => t.id !== id) });
+        set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) }));
       },
 
       showNotification(message, type = 'info', actions = [], duration = 8000) {
-        const id = `notif_${Date.now()}`;
+        const id = uid('notif');
         const notification: Notification = { id, message, type, actions, duration, timestamp: Date.now() };
-        set({ ...get(), notifications: [...get().notifications, notification] });
+        set((s) => ({ notifications: [...s.notifications, notification] }));
         if (duration > 0) {
-          setTimeout(() => {
-            set({ ...get(), notifications: get().notifications.filter((n) => n.id !== id) });
-          }, duration);
+          setTimeout(() => get().dismissNotification(id), duration);
         }
         return id;
       },
 
       dismissNotification(id) {
-        set({ ...get(), notifications: get().notifications.filter((n) => n.id !== id) });
+        set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) }));
       },
 
       setLoading(key, message) {
-        set({
-          ...get(),
-          loadingMessages: { ...get().loadingMessages, [key]: message },
-        });
+        set((s) => ({ loadingMessages: { ...s.loadingMessages, [key]: message } }));
       },
 
       setLoadingGlobal(loading, message) {
-        set({
-          ...get(),
+        set((s) => ({
           isLoading: loading,
-          loadingMessages: message ? { ...get().loadingMessages, global: message } : get().loadingMessages,
-        });
+          loadingMessages: message ? { ...s.loadingMessages, global: message } : s.loadingMessages,
+        }));
       },
 
       setError(error) {
-        set({ ...get(), error });
+        set({ error });
       },
 
       setTouchControls(enabled) {
-        set({ ...get(), touchControls: enabled });
+        set({ touchControls: enabled });
       },
 
       setHaptics(enabled) {
-        set({ ...get(), hapticsEnabled: enabled });
+        set({ hapticsEnabled: enabled });
       },
 
       setMouseSensitivity(sensitivity) {
-        set({ ...get(), mouseSensitive: sensitivity });
+        set({ mouseSensitive: sensitivity });
       },
     }),
     {
       name: 'rigverse-ui',
-      getStorage: () => localStorage,
-      partialize: (state) => ({
+      storage: createJSONStorage(() => localStorage),
+      // Hydrated manually after mount (see StoreHydrator) to avoid SSR hydration mismatches
+      skipHydration: true,
+      partialize: (state): PersistedUI => ({
         theme: state.theme,
         roomTheme: state.roomTheme,
         reducedMotion: state.reducedMotion,
         touchControls: state.touchControls,
         hapticsEnabled: state.hapticsEnabled,
         mouseSensitive: state.mouseSensitive,
-        toasts: [],
-        notifications: [],
       }),
-    }
-  )
+    },
+  ),
 );
 
 export type UIStore = ReturnType<typeof useUIStore>;

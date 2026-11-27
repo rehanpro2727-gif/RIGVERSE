@@ -7,10 +7,10 @@ export { useSceneStore } from '@/stores/scene';
 export { useUIStore } from '@/stores/ui';
 export { useSessionStore } from '@/stores/session';
 
+import { useMemo } from 'react';
 import { useBuildStore } from '@/stores/build';
 import { usePricingStore } from '@/stores/pricing';
-import { useMemo } from 'react';
-import { ComponentCategory } from '@shared/types';
+import { computeTotals, formatINR } from '@/lib/totals';
 
 /**
  * Derived hook: compute live build totals from pricing snapshots.
@@ -22,42 +22,8 @@ export function useBuildTotals() {
   const snapshots = usePricingStore((s) => s.snapshots);
 
   return useMemo(() => {
-    let componentPrice = 0;
-    const breakdown: Record<string, number> = {};
-
-    for (const category of Object.keys(components) as ComponentCategory[]) {
-      const comp = components[category];
-      if (!comp || comp.hidden) continue;
-      const snap = snapshots[comp.productId];
-      const price = snap?.bestPrice ?? 0;
-      componentPrice += price;
-      breakdown[category] = price;
-    }
-
-    let accessoryPrice = 0;
-    for (const acc of accessories) {
-      const snap = snapshots[acc.productId];
-      const price = snap?.bestPrice ?? 0;
-      accessoryPrice += price;
-    }
-
-    const subtotal = componentPrice + accessoryPrice;
-    const shipping = subtotal > 0 && subtotal < 50000 ? 499 : 0;
-    const total = subtotal + shipping;
-
-    return {
-      componentPrice,
-      accessoryPrice,
-      subtotal,
-      shipping,
-      total,
-      breakdown,
-      formattedPrice: new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0,
-      }).format(total),
-    };
+    const totals = computeTotals(components, accessories, snapshots);
+    return { ...totals, formattedPrice: formatINR(totals.total) };
   }, [components, accessories, snapshots]);
 }
 
@@ -75,13 +41,5 @@ export function useSelectedComponentCount() {
  * Derived hook: format INR price.
  */
 export function useFormatINR(value: number) {
-  return useMemo(
-    () =>
-      new Intl.NumberFormat('en-IN', {
-        style: 'currency',
-        currency: 'INR',
-        maximumFractionDigits: 0,
-      }).format(value),
-    [value]
-  );
+  return useMemo(() => formatINR(value), [value]);
 }

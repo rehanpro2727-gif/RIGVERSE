@@ -1,9 +1,16 @@
 // RIGVERSE — Root Layout
 // Global providers, fonts, and base styles.
 
+<<<<<<< HEAD
 import type { Metadata } from 'next';
 import { Orbitron, Space_Grotesk } from 'next/font/google';
+=======
+import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
 import './globals.css';
+import { StoreHydrator } from '@/components/store-hydrator';
+import { Toaster } from '@/components/toaster';
 
 const orbitron = Orbitron({
   subsets: ['latin'],
@@ -21,14 +28,14 @@ const spaceGrotesk = Space_Grotesk({
 
 export const metadata: Metadata = {
   title: 'RIGVERSE — Build Your Legend',
-  description: 'India\'s most immersive PC configurator. Real prices. Live compatibility. 3D assembly.',
+  description: "India's most immersive PC configurator. Real prices. Live compatibility. 3D assembly.",
+};
+
+// Next.js 14 wants viewport and themeColor in their own export, not in metadata.
+export const viewport: Viewport = {
   themeColor: '#0B0B14',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -37,13 +44,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
+<<<<<<< HEAD
     <html lang="en" className={`${orbitron.variable} ${spaceGrotesk.variable} antialiased`}>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
       <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden font-body">
+=======
+    <html lang="en" className={`${inter.variable} antialiased`}>
+      <body className="bg-rigverse-bg text-white min-h-screen overflow-x-hidden font-sans">
+        <StoreHydrator />
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
         {children}
+        <Toaster />
       </body>
     </html>
   );

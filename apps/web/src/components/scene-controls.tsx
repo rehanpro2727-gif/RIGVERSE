@@ -6,20 +6,25 @@
 
 import { useSceneStore } from '@/hooks/stores';
 import { DEFAULT_DPR_CAP, MOBILE_MAX_DPR, MAX_TRIANGLE_BUDGET } from '@shared/types/constants';
+import { MIN_TRIANGLE_BUDGET } from '@/stores/scene';
 
 const ENV_TYPES: Array<'hdr' | 'gradient' | 'solid'> = ['hdr', 'gradient', 'solid'];
 
 export function SceneControls() {
   const scene = useSceneStore((s) => s.scene);
-  const postFx = useSceneStore((s) => s.postFx);
+  const dprCap = useSceneStore((s) => s.dprCap);
+  const triangleBudget = useSceneStore((s) => s.triangleBudget);
   const setEnvironment = useSceneStore((s) => s.setEnvironment);
   const setDprCap = useSceneStore((s) => s.setDprCap);
   const setTriangleBudget = useSceneStore((s) => s.setTriangleBudget);
   const setPostFx = useSceneStore((s) => s.setPostFx);
 
   const envType = scene?.environment?.type ?? 'gradient';
+<<<<<<< HEAD
   const dprCap = useSceneStore((s) => s.dprCap) ?? DEFAULT_DPR_CAP;
   const triangleBudget = useSceneStore((s) => s.triangleBudget) ?? MAX_TRIANGLE_BUDGET;
+=======
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
 
   return (
     <div className="glass-panel p-6 space-y-6">
@@ -71,11 +76,11 @@ export function SceneControls() {
       {/* Triangle Budget */}
       <div>
         <label className="block text-sm text-rigverse-muted mb-2">
-          Triangle Budget: <span className="text-rigverse-neon-violet font-mono">{triangleBudget.toLocaleString()}</span>
+          Triangle Budget: <span className="text-rigverse-neon-violet font-mono">{triangleBudget.toLocaleString('en-IN')}</span>
         </label>
         <input
           type="range"
-          min={10000}
+          min={MIN_TRIANGLE_BUDGET}
           max={MAX_TRIANGLE_BUDGET}
           step={10000}
           value={triangleBudget}
@@ -83,8 +88,8 @@ export function SceneControls() {
           className="w-full accent-rigverse-neon-violet"
         />
         <div className="flex justify-between text-[10px] text-rigverse-muted mt-1">
-          <span>10k</span>
-          <span>{MAX_TRIANGLE_BUDGET.toLocaleString()}</span>
+          <span>{(MIN_TRIANGLE_BUDGET / 1000).toLocaleString('en-IN')}k</span>
+          <span>{MAX_TRIANGLE_BUDGET.toLocaleString('en-IN')}</span>
         </div>
       </div>
 

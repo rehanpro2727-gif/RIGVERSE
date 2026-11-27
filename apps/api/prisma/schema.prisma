@@ -60,10 +60,16 @@ model Product {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
+<<<<<<< HEAD
   prices         PriceRecord[]
   priceSnapshots PriceSnapshot[]
   pricePoints    PricePoint[]
   priceAlerts    PriceAlert[]
+=======
+  prices      PriceRecord[]
+  snapshots   PriceSnapshot[]
+  alerts      PriceAlert[]
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
   compatOut   CompatibilityCheck[]
 
   @@index([category])
@@ -188,7 +194,11 @@ model Build {
 
   user        User?        @relation(fields: [userId], references: [id])
   shares      BuildShare[]
+<<<<<<< HEAD
   savedBuilds SavedBuild[]
+=======
+  savedBy     SavedBuild[]
+>>>>>>> 5a30304695ef9f65487c4ccac024ba3591bd265a
 
   @@index([userId])
   @@index([shareSlug])
